@@ -1,0 +1,15 @@
+streamlit
+transformers
+accelerate
+torch
+bitsandbytes
+chromadb
+bcrypt
+pymupdf
+python-docx
+fastapi
+uvicorn[standard]
+PyJWT
+python-multipart
+requests
+sentence-transformers
