@@ -1,8 +1,5 @@
 customtkinter
-transformers
-accelerate
-torch
-bitsandbytes
+ollama
 chromadb
 bcrypt
 pymupdf

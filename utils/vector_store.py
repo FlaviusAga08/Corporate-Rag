@@ -1,30 +1,52 @@
-import uuid
-from typing import List
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig, pipeline
+from utils.vector_store import ChromaVectorStore
 
-import chromadb
-from sentence_transformers import SentenceTransformer
+MODEL_ID = "qwen2.5:7b"
 
+_QUANT_CONFIG = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_compute_dtype=torch.bfloat16,
+    bnb_4bit_use_double_quant=True,
+    bnb_4bit_quant_type="nf4",
+)
 
-class ChromaVectorStore:
-    def __init__(self, collection_name: str = "rag_collection"):
-        self.client = chromadb.PersistentClient(path="./chroma_db")
-        self.collection = self.client.get_or_create_collection(name=collection_name)
-        self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-
-    def add_documents(self, documents: List[str], metadatas: List[dict] = None):
-        embeddings = self.embedding_model.encode(documents).tolist()
-        ids = [str(uuid.uuid4()) for _ in documents]
-        self.collection.add(
-            documents=documents,
-            embeddings=embeddings,
-            metadatas=metadatas or [{} for _ in documents],
-            ids=ids,
+class RAGPipeline:
+    def __init__(self):
+        self.vector_store = ChromaVectorStore()
+        tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+        model = AutoModelForCausalLM.from_pretrained(
+            MODEL_ID,
+            quantization_config=_QUANT_CONFIG,
+            device_map="auto",
         )
+        self.llm = pipeline("text-generation", model=model, tokenizer=tokenizer)
 
-    def query(self, query: str, k: int = 3) -> List[str]:
-        query_embedding = self.embedding_model.encode(query).tolist()
-        results = self.collection.query(
-            query_embeddings=[query_embedding],
-            n_results=k,
-        )
-        return results["documents"][0]
+    def retrieve(self, query: str, k: int = 3) -> str:
+        return self.vector_store.query(query, k=k)
+
+    def generate(self, query: str, context: str) -> str:
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "Ești un asistent AI pentru documente în limba română."
+                    "Reguli:"
+                    "- Răspunde întotdeauna în limba română."
+                    "- Nu folosi alte limbi decât româna."
+                    "- Pentru întrebări bazate pe documente, folosește doar contextul primit."
+                    "- Dacă informația nu există în context, spune clar că nu ai găsit informația."
+                    "- Nu inventa informații."
+                ),
+            },
+            {
+                "role": "user",
+                "content": f"Context:\n{context}\n\nÎntrebare: {query}",
+            },
+        ]
+        output = self.llm(messages, max_new_tokens=512, do_sample=False)
+        return output[0]["generated_text"][-1]["content"]
+
+    def answer_query(self, query: str) -> str:
+        context = self.retrieve(query)
+        return self.generate(query, context=" ".join(context))
