@@ -19,7 +19,7 @@ class RegisterDialog(ctk.CTkToplevel):
         self.title("Creare cont")
         self.geometry("400x460")
         self.resizable(False, False)
-        self.grab_set()
+        self.after(100, self.grab_set)
         self._build()
 
     def _build(self):
