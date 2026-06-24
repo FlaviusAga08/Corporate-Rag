@@ -7,34 +7,43 @@ OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 
 _client = ollama.Client(host=OLLAMA_HOST)
 
-_SYSTEM_PROMPT = (
-    "Ești un asistent AI pentru documente în limba română."
-    "Reguli:"
-    "- Răspunde întotdeauna în limba română."
-    "- Nu folosi alte limbi decât româna."
-    "- Pentru întrebări bazate pe documente, folosește doar contextul primit."
-    "- Dacă informația nu există în context, spune clar că nu ai găsit informația."
-    "- Nu inventa informații."
-)
+_SYSTEM_PROMPT = """\
+Ești un asistent specializat în analiza documentelor corporative în limba română.
+
+REGULI STRICTE:
+1. Răspunde EXCLUSIV pe baza fragmentelor de context numerotate de mai jos.
+2. Dacă informația nu se regăsește în context, răspunde exact: "Această informație nu se află în documentele încărcate."
+3. Nu folosi cunoștințe generale sau informații din afara contextului.
+4. Răspunde întotdeauna în limba română.
+5. Când citezi o informație, menționează din ce fragment provine (ex: "Conform fragmentului 2, ...").
+6. Fii specific și concis — nu da răspunsuri vagi.\
+"""
 
 
 class RAGPipeline:
     def __init__(self):
         self.vector_store = ChromaVectorStore()
 
-    def retrieve(self, query: str, k: int = 3) -> list[str]:
+    def retrieve(self, query: str, k: int = 5) -> list[str]:
         return self.vector_store.query(query, k=k)
 
-    def generate(self, query: str, context: str) -> str:
+    def generate(self, query: str, chunks: list[str]) -> str:
+        numbered = "\n\n".join(
+            f"[Fragment {i + 1}]\n{chunk}" for i, chunk in enumerate(chunks)
+        )
+        user_message = (
+            f"Fragmentele din documente:\n\n{numbered}\n\n"
+            f"---\nÎntrebare: {query}"
+        )
         response = _client.chat(
             model=MODEL_ID,
             messages=[
                 {"role": "system", "content": _SYSTEM_PROMPT},
-                {"role": "user", "content": f"Context:\n{context}\n\nÎntrebare: {query}"},
+                {"role": "user", "content": user_message},
             ],
         )
         return response["message"]["content"]
 
     def answer_query(self, query: str) -> str:
-        context = self.retrieve(query)
-        return self.generate(query, context=" ".join(context))
+        chunks = self.retrieve(query)
+        return self.generate(query, chunks)

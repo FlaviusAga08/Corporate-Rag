@@ -7,7 +7,7 @@ from utils.api_client import RAGClient, APIError
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
-DEFAULT_SERVER = "http://localhost:8000"
+DEFAULT_SERVER = "http://192.168.0.137:8000"
 
 
 # ── Register dialog ────────────────────────────────────────────────────────────
