@@ -14,12 +14,10 @@ class ChromaVectorStore:
     def add_documents(self, documents: List[str], metadatas: List[dict] = None):
         embeddings = self.embedding_model.encode(documents).tolist()
         ids = [str(uuid.uuid4()) for _ in documents]
-        self.collection.add(
-            documents=documents,
-            embeddings=embeddings,
-            metadatas=metadatas or [{} for _ in documents],
-            ids=ids,
-        )
+        kwargs = dict(documents=documents, embeddings=embeddings, ids=ids)
+        if metadatas:
+            kwargs["metadatas"] = metadatas
+        self.collection.add(**kwargs)
 
     def query(self, query: str, k: int = 3) -> List[str]:
         query_embedding = self.embedding_model.encode(query).tolist()
