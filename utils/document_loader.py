@@ -1,5 +1,6 @@
 import os
 import re
+from collections import Counter
 from typing import List
 
 import fitz  # pymupdf
@@ -10,7 +11,6 @@ CHUNK_OVERLAP = 100
 
 
 def _chunk(text: str) -> List[str]:
-    # Split on paragraph breaks first to keep logical units together
     paragraphs = [p.strip() for p in re.split(r"\n{2,}", text) if p.strip()]
 
     chunks: List[str] = []
@@ -23,7 +23,6 @@ def _chunk(text: str) -> List[str]:
             if current:
                 chunks.append(current)
             if len(para) > CHUNK_SIZE:
-                # paragraph is too long — split by character with overlap
                 start = 0
                 while start < len(para):
                     chunks.append(para[start:start + CHUNK_SIZE].strip())
@@ -38,16 +37,50 @@ def _chunk(text: str) -> List[str]:
     return [c for c in chunks if len(c) > 30]
 
 
+def _strip_pdf_noise(pages_lines: List[List[str]], n_pages: int) -> List[str]:
+    # Lines appearing on more than 40% of pages are headers/footers — remove them
+    counts = Counter(
+        line.strip()
+        for lines in pages_lines
+        for line in lines
+        if line.strip()
+    )
+    noise = {
+        line for line, count in counts.items()
+        if count >= max(2, n_pages * 0.4) and len(line) < 120
+    }
+    cleaned = []
+    for lines in pages_lines:
+        page_text = "\n".join(l for l in lines if l.strip() not in noise)
+        cleaned.append(page_text)
+    return cleaned
+
+
 def load_pdf(file_path: str) -> List[str]:
     doc = fitz.open(file_path)
-    text = "\n\n".join(page.get_text() for page in doc)
+    pages_lines = [page.get_text().split("\n") for page in doc]
+    cleaned_pages = _strip_pdf_noise(pages_lines, len(doc))
+    text = "\n\n".join(cleaned_pages)
     return _chunk(text)
 
 
 def load_docx(file_path: str) -> List[str]:
     doc = Document(file_path)
-    text = "\n\n".join(para.text for para in doc.paragraphs if para.text.strip())
-    return _chunk(text)
+    parts: List[str] = []
+
+    # Paragraphs
+    for para in doc.paragraphs:
+        if para.text.strip():
+            parts.append(para.text.strip())
+
+    # Tables — extract each row as a single line
+    for table in doc.tables:
+        for row in table.rows:
+            cells = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+            if cells:
+                parts.append(" | ".join(cells))
+
+    return _chunk("\n\n".join(parts))
 
 
 def load_documents(directory: str) -> List[str]:

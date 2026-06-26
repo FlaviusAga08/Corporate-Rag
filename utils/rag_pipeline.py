@@ -46,4 +46,6 @@ class RAGPipeline:
 
     def answer_query(self, query: str) -> str:
         chunks = self.retrieve(query)
+        if not chunks:
+            return "Această informație nu se află în documentele încărcate."
         return self.generate(query, chunks)
