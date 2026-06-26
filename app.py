@@ -1,3 +1,4 @@
+import os
 import threading
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
@@ -7,7 +8,7 @@ from utils.api_client import RAGClient, APIError
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
-DEFAULT_SERVER = "http://192.168.0.137:8000"
+DEFAULT_SERVER = "https://daughter-mobiles-saskatchewan-finishing.trycloudflare.com"
 
 
 # ── Register dialog ────────────────────────────────────────────────────────────
@@ -248,7 +249,7 @@ class MainFrame(ctk.CTkFrame):
         self._file_list.configure(state="normal")
         self._file_list.delete("1.0", "end")
         for p in self._pending_files:
-            self._file_list.insert("end", p.split("/")[-1] + "\n")
+            self._file_list.insert("end", os.path.basename(p) + "\n")
         self._file_list.configure(state="disabled")
         self._doc_status.configure(
             text=f"{len(paths)} fișier(e) selectate.", text_color="gray")
@@ -267,7 +268,7 @@ class MainFrame(ctk.CTkFrame):
             for path in self._pending_files:
                 with open(path, "rb") as f:
                     content = f.read()
-                name = path.split("/")[-1]
+                name = os.path.basename(path)
                 mime = ("application/pdf" if name.endswith(".pdf")
                         else "application/vnd.openxmlformats-officedocument"
                              ".wordprocessingml.document")
