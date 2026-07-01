@@ -13,24 +13,38 @@ class ChromaVectorStore:
         self.collection = self.client.get_or_create_collection(name=collection_name)
         self.embedding_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
 
-    def add_documents(self, documents: List[str], metadatas: List[dict] = None):
+    # Modifică metodele din clasa ChromaVectorStore în utils/vector_store.py
+
+    def add_documents(self, chunks: List[dict]):
+        # Extragem separat textele și metadatele din structura nouă
+        documents = [c["text"] for c in chunks]
+        metadatas = [c["metadata"] for c in chunks]
+        
         embeddings = self.embedding_model.encode(documents).tolist()
         ids = [str(uuid.uuid4()) for _ in documents]
-        kwargs = dict(documents=documents, embeddings=embeddings, ids=ids)
-        if metadatas:
-            kwargs["metadatas"] = metadatas
-        self.collection.add(**kwargs)
+        
+        self.collection.add(
+            documents=documents,
+            embeddings=embeddings,
+            metadatas=metadatas,  # <-- Acum metadatele sunt stocate oficial!
+            ids=ids
+        )
 
-    def query(self, query: str, k: int = 5) -> List[str]:
+    def query(self, query: str, k: int = 5) -> List[dict]:
         query_embedding = self.embedding_model.encode(query).tolist()
         results = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=k,
-            include=["documents", "distances"],
+            include=["documents", "metadatas", "distances"],
         )
+        
         documents = results["documents"][0]
+        metadatas = results["metadatas"][0]
         distances = results["distances"][0]
+        
+        # Returnăm un dicționar complet pentru fiecare rezultat relevant
         return [
-            doc for doc, dist in zip(documents, distances)
+            {"text": doc, "metadata": meta}
+            for doc, meta, dist in zip(documents, metadatas, distances)
             if dist < DISTANCE_THRESHOLD
         ]

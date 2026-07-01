@@ -8,33 +8,38 @@ OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 _client = ollama.Client(host=OLLAMA_HOST)
 
 _SYSTEM_PROMPT = """\
-Ești un asistent specializat în analiza documentelor corporative în limba română.
+Ești un expert în audit și analiză de documente corporative. Misiunea ta este să oferi răspunsuri extrem de precise, bazate strict pe documentele puse la dispoziție.
 
-REGULI STRICTE:
-1. Răspunde EXCLUSIV pe baza fragmentelor de context numerotate de mai jos.
-2. Dacă informația nu se regăsește în context, răspunde exact: "Această informație nu se află în documentele încărcate."
-3. Nu folosi cunoștințe generale sau informații din afara contextului.
-4. Răspunde întotdeauna în limba română.
-5. Când citezi o informație, menționează din ce fragment provine (ex: "Conform fragmentului 2, ...").
-6. Fii specific și concis — nu da răspunsuri vagi.\
+REGULI OBLIGATORII:
+1. Răspunde EXCLUSIV pe baza fragmentelor de context oferite mai jos.
+2. Dacă informația solicitată nu se regăsește în mod explicit în context, răspunde exact cu textul: "Această informație nu se află în documentele încărcate." Nu încerca să inventezi sau să extrapolezi.
+3. Răspunde direct, profesional și concis în limba română.
+4. Pentru fiecare afirmație importantă din răspunsul tău, citează obligatoriu documentul sursă și pagina menționate în antetul fragmentului (ex: "[Sursa: contract.pdf, Pag. 3]").
 """
-
 
 class RAGPipeline:
     def __init__(self):
         self.vector_store = ChromaVectorStore()
 
-    def retrieve(self, query: str, k: int = 5) -> list[str]:
+    def retrieve(self, query: str, k: int = 5) -> list[dict]:
         return self.vector_store.query(query, k=k)
 
-    def generate(self, query: str, chunks: list[str]) -> str:
-        numbered = "\n\n".join(
-            f"[Fragment {i + 1}]\n{chunk}" for i, chunk in enumerate(chunks)
-        )
+    def generate(self, query: str, chunks: list[dict]) -> str:
+        # Construim contextul îmbogățit cu metadatele reale ale fișierelor
+        context_parts = []
+        for i, chunk in enumerate(chunks):
+            source = chunk["metadata"].get("source", "Necunoscut")
+            page = chunk["metadata"].get("page", "-")
+            header = f"[Fragment {i + 1} | Fișier: {source} | Pagina: {page}]"
+            context_parts.append(f"{header}\n{chunk['text']}")
+            
+        numbered_context = "\n\n".join(context_parts)
+        
         user_message = (
-            f"Fragmentele din documente:\n\n{numbered}\n\n"
-            f"---\nÎntrebare: {query}"
+            f"Fragmentele autorizate din documente:\n\n{numbered_context}\n\n"
+            f"---\nÎntrebare utilizator: {query}"
         )
+        
         response = _client.chat(
             model=MODEL_ID,
             messages=[

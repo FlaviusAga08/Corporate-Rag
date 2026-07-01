@@ -104,10 +104,10 @@ def upload_documents(
 
 @app.post("/documents/process")
 def process_documents(username: str = Depends(require_auth), rag: RAGPipeline = Depends(get_rag)):
-    documents = load_documents(UPLOAD_DIR)
+    documents = load_documents(UPLOAD_DIR) # Acum returnează structura bogată cu dict-uri
     if not documents:
         raise HTTPException(status_code=400, detail="Nu există documente de procesat.")
-    rag.vector_store.add_documents(documents)
+    rag.vector_store.add_documents(documents) # Trimite corect textele + metadatele în Chroma
     return {"processed": len(documents)}
 
 

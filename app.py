@@ -8,7 +8,7 @@ from utils.api_client import RAGClient, APIError
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
-DEFAULT_SERVER = "https://daughter-mobiles-saskatchewan-finishing.trycloudflare.com"
+DEFAULT_SERVER = "https://arabic-vacations-pour-targeted.trycloudflare.com"
 
 
 # ── Register dialog ────────────────────────────────────────────────────────────
