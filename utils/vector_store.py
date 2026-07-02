@@ -40,11 +40,10 @@ class ChromaVectorStore:
         
         documents = results["documents"][0]
         metadatas = results["metadatas"][0]
-        distances = results["distances"][0]
         
-        # Returnăm un dicționar complet pentru fiecare rezultat relevant
+        # Scoatem filtrarea rigidă 'if dist < DISTANCE_THRESHOLD'
+        # Returnăm direct top K cele mai apropiate fragmente găsite
         return [
             {"text": doc, "metadata": meta}
-            for doc, meta, dist in zip(documents, metadatas, distances)
-            if dist < DISTANCE_THRESHOLD
+            for doc, meta in zip(documents, metadatas)
         ]
