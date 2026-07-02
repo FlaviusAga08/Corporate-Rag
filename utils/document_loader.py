@@ -9,6 +9,15 @@ from docx import Document
 CHUNK_SIZE = 800
 CHUNK_OVERLAP = 100
 
+def _get_product_tag(text: str) -> str:
+    """Identifică dinamic cărui produs îi aparține textul pe baza cuvintelor cheie."""
+    text_lower = text.lower()
+    if "dinamic" in text_lower:
+        return "Dinamic Invest"
+    if "smart" in text_lower or "smart plan" in text_lower:
+        return "Smart Plan"
+    return "General / Nespecificat"
+
 def _chunk_text(text: str, filename: str, page_num: int) -> List[Dict[str, Any]]:
     paragraphs = [p.strip() for p in re.split(r"\n{2,}", text) if p.strip()]
     chunks: List[Dict[str, Any]] = []
@@ -21,14 +30,23 @@ def _chunk_text(text: str, filename: str, page_num: int) -> List[Dict[str, Any]]
             if current:
                 chunks.append({
                     "text": current,
-                    "metadata": {"source": filename, "page": page_num}
+                    "metadata": {
+                        "source": filename, 
+                        "page": page_num,
+                        "product": _get_product_tag(current)
+                    }
                 })
             if len(para) > CHUNK_SIZE:
                 start = 0
                 while start < len(para):
+                    chunk_slice = para[start:start + CHUNK_SIZE].strip()
                     chunks.append({
-                        "text": para[start:start + CHUNK_SIZE].strip(),
-                        "metadata": {"source": filename, "page": page_num}
+                        "text": chunk_slice,
+                        "metadata": {
+                            "source": filename, 
+                            "page": page_num,
+                            "product": _get_product_tag(chunk_slice)
+                        }
                     })
                     start += CHUNK_SIZE - CHUNK_OVERLAP
                 current = ""
@@ -38,7 +56,11 @@ def _chunk_text(text: str, filename: str, page_num: int) -> List[Dict[str, Any]]
     if current:
         chunks.append({
             "text": current,
-            "metadata": {"source": filename, "page": page_num}
+            "metadata": {
+                "source": filename, 
+                "page": page_num,
+                "product": _get_product_tag(current)
+            }
         })
 
     return [c for c in chunks if len(c["text"]) > 30]
@@ -72,7 +94,6 @@ def load_pdf(file_path: str) -> List[Dict[str, Any]]:
     pdf_chunks = []
     for page_idx, lines in enumerate(cleaned_pages_lines):
         page_text = "\n".join(lines)
-        # Procesăm chunk-urile salvând pagina curentă (1-indexed)
         pdf_chunks.extend(_chunk_text(page_text, filename, page_idx + 1))
     return pdf_chunks
 
@@ -92,7 +113,6 @@ def load_docx(file_path: str) -> List[Dict[str, Any]]:
             if cells:
                 parts.append(" | ".join(cells))
 
-    # Fisierele Word nu au pagini fixe în mod nativ, punem pagina 1 generic
     return _chunk_text("\n\n".join(parts), filename, 1)
 
 

@@ -14,7 +14,8 @@ REGULI OBLIGATORII:
 1. Răspunde EXCLUSIV pe baza fragmentelor de context oferite mai jos.
 2. Dacă informația solicitată nu se regăsește în mod explicit în context, răspunde exact cu textul: "Această informație nu se află în documentele încărcate." Nu încerca să inventezi sau să extrapolezi.
 3. Răspunde direct, profesional și concis în limba română.
-4. Pentru fiecare afirmație importantă din răspunsul tău, citează obligatoriu documentul sursă și pagina menționate în antetul fragmentului (ex: "[Sursa: contract.pdf, Pag. 3]").
+4. ATENȚIE MAJORĂ LA POLUAREA DATELOR: Nu asocia caracteristicile sau cifrele unui produs cu un alt produs. Verifică cu strictețe câmpul "Produs" din antetul fiecărui fragment pentru a asigura corectitudinea datelor!
+5. Pentru fiecare afirmație importantă din răspunsul tău, citează obligatoriu documentul sursă, pagina și produsul menționate în antetul fragmentului (ex: "[Produs: Dinamic Invest | Sursa: contract.pdf, Pag. 3]").
 """
 
 class RAGPipeline:
@@ -30,7 +31,8 @@ class RAGPipeline:
         for i, chunk in enumerate(chunks):
             source = chunk["metadata"].get("source", "Necunoscut")
             page = chunk["metadata"].get("page", "-")
-            header = f"[Fragment {i + 1} | Fișier: {source} | Pagina: {page}]"
+            product = chunk["metadata"].get("product", "Nespecificat")
+            header = f"[Fragment {i + 1} | Produs: {product} | Fișier: {source} | Pagina: {page}]"
             context_parts.append(f"{header}\n{chunk['text']}")
             
         numbered_context = "\n\n".join(context_parts)
