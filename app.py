@@ -8,7 +8,7 @@ from utils.api_client import RAGClient, APIError
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
-DEFAULT_SERVER = "https://parallel-watt-bathrooms-alternatives.trycloudflare.com"
+DEFAULT_SERVER = "https://argument-xbox-retrieval-varying.trycloudflare.com"
 
 
 # ── Register dialog ────────────────────────────────────────────────────────────
