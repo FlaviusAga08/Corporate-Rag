@@ -16,23 +16,33 @@ class ChromaVectorStore:
     # Modifică metodele din clasa ChromaVectorStore în utils/vector_store.py
 
     def add_documents(self, chunks: List[dict]):
-        # Delete the old collection
-        self.client.delete_collection("rag_collection")
+        # Remove the old collection if it exists
+        try:
+            self.client.delete_collection(self.collection.name)
+        except Exception:
+            pass
 
-        # Recreate it
-        self.collection = self.client.create_collection("rag_collection")
-        # Extragem separat textele și metadatele din structura nouă
+        # Create a fresh collection
+        self.collection = self.client.get_or_create_collection(
+            name=self.collection.name
+        )
+
         documents = [c["text"] for c in chunks]
         metadatas = [c["metadata"] for c in chunks]
-        
-        embeddings = self.embedding_model.encode(documents).tolist()
+
+        embeddings = self.embedding_model.encode(
+            documents,
+            batch_size=32,
+            show_progress_bar=True
+        ).tolist()
+
         ids = [str(uuid.uuid4()) for _ in documents]
-        
+
         self.collection.add(
             documents=documents,
             embeddings=embeddings,
-            metadatas=metadatas,  # <-- Acum metadatele sunt stocate oficial!
-            ids=ids
+            metadatas=metadatas,
+            ids=ids,
         )
 
     def query(self, query: str, k: int = 5) -> List[dict]:
