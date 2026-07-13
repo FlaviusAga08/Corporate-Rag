@@ -2,7 +2,7 @@ import os
 import ollama
 from utils.vector_store import ChromaVectorStore
 
-MODEL_ID = os.environ.get("OLLAMA_MODEL", "granite4.1:8b")
+MODEL_ID = os.environ.get("OLLAMA_MODEL", "granite4.1:3b")
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 
 _client = ollama.Client(host=OLLAMA_HOST)
