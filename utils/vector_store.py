@@ -16,6 +16,11 @@ class ChromaVectorStore:
     # Modifică metodele din clasa ChromaVectorStore în utils/vector_store.py
 
     def add_documents(self, chunks: List[dict]):
+        # Delete the old collection
+        self.client.delete_collection("rag_collection")
+
+        # Recreate it
+        self.collection = self.client.create_collection("rag_collection")
         # Extragem separat textele și metadatele din structura nouă
         documents = [c["text"] for c in chunks]
         metadatas = [c["metadata"] for c in chunks]
