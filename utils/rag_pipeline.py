@@ -47,8 +47,9 @@ class RAGPipeline:
         numbered_context = "\n\n".join(context_parts)
         
         user_message = (
-            f"Fragmentele autorizate din documente:\n\n{numbered_context}\n\n"
-            f"---\nÎntrebare utilizator: {query}"
+            f"Retrieved context:\n\n{numbered_context}\n\n"
+            f"---\n"
+            f"User question: {query}"
         )
         
         response = _client.chat(
