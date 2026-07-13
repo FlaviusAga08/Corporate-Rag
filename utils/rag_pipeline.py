@@ -63,6 +63,16 @@ class RAGPipeline:
 
     def answer_query(self, query: str) -> str:
         chunks = self.retrieve(query)
+
+        print("\n================ RETRIEVED CHUNKS ================\n")
+
+        for i, chunk in enumerate(chunks):
+            print(f"\nChunk {i + 1}")
+            print("Metadata:", chunk["metadata"])
+            print(chunk["text"])
+            print("-" * 80)
+
         if not chunks:
             return "This info was not found in the file."
+
         return self.generate(query, chunks)
